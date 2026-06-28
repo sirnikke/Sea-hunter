@@ -1,10 +1,9 @@
 import type { IGame, Projected, SfxName, View } from './types'
 import { clamp, dist2, lerp } from './types'
-import { projectWith } from './camera'
 import { ParticleSystem } from './particles'
 import { AudioEngine } from './audio'
 import { InputManager } from './input'
-import { Background } from './background'
+import { World3D } from './world3d'
 import { Player } from './player'
 import { Enemy, Threat, type EnemyKind } from './enemies'
 import { Kraken } from './kraken'
@@ -17,10 +16,10 @@ export class Game implements IGame {
   view: View = { W: 1, H: 1, cx: 0.5, cy: 0.5, dpr: 1, touch: false }
   readonly particles = new ParticleSystem()
   private readonly audio = new AudioEngine()
-  private readonly background = new Background()
   private readonly hud = new Hud()
 
   private input!: InputManager
+  private world!: World3D
   state: GameState = 'title'
 
   private player = new Player()
@@ -41,6 +40,7 @@ export class Game implements IGame {
   private timeScale = 1
   private muted = false
   private debugBoss = false
+  private debugDemo = false
 
   get elapsed(): number {
     return this.time
@@ -55,7 +55,9 @@ export class Game implements IGame {
       this.best = 0
     }
     try {
-      this.debugBoss = new URLSearchParams(location.search).has('boss')
+      const q = new URLSearchParams(location.search)
+      this.debugBoss = q.has('boss')
+      this.debugDemo = q.has('demo')
     } catch {
       this.debugBoss = false
     }
@@ -64,6 +66,10 @@ export class Game implements IGame {
 
   setView(view: View): void {
     this.view = view
+  }
+
+  setWorld(world: World3D): void {
+    this.world = world
   }
 
   /** UI-hook for InputManager: returns true if a press hit a HUD button. */
@@ -94,7 +100,7 @@ export class Game implements IGame {
 
   // ── IGame surface ──
   project(x: number, y: number, z: number): Projected {
-    return projectWith(this.view, x, y, z)
+    return this.world.project(x, y, z)
   }
   sfx(name: SfxName): void {
     this.audio.play(name)
@@ -146,6 +152,15 @@ export class Game implements IGame {
     this.resetRun()
     this.state = 'playing'
     if (this.debugBoss) this.startBoss() // dev: ?boss in the URL jumps straight to the Kraken
+    if (this.debugDemo) {
+      // dev: ?demo shows one of each creature up close for art checks
+      this.level.bossStarted = true
+      const demo = [new Enemy('charger', -0.35, 0.0), new Enemy('swarm', 0.18, 0.12), new Enemy('shooter', 0.45, -0.1)]
+      demo[0].z = 0.46
+      demo[1].z = 0.4
+      demo[2].z = 0.52
+      this.enemies.push(...demo)
+    }
   }
 
   private startBoss(): void {
@@ -200,7 +215,6 @@ export class Game implements IGame {
     const gdt = realDt * this.timeScale
 
     const playing = this.state === 'playing'
-    this.background.update(playing ? gdt : realDt * 0.4, playing ? 0.5 : 0.12)
     this.particles.update(playing ? gdt : realDt)
 
     if (input.pausePressed && (this.state === 'playing' || this.state === 'paused')) this.togglePause()
@@ -348,33 +362,21 @@ export class Game implements IGame {
     return true
   }
 
-  // ── draw ──
-  draw(ctx: CanvasRenderingContext2D): void {
+  // ── render: 3D world (WebGL) then 2D overlay ──
+  renderWorld(dt: number): void {
+    this.world.render(dt, this.enemies, this.threats, this.boss, this.shakeAmt)
+  }
+
+  drawOverlay(ctx: CanvasRenderingContext2D): void {
     const view = this.view
-    ctx.save()
-    if (this.shakeAmt > 0.3) {
-      ctx.translate((Math.random() - 0.5) * this.shakeAmt, (Math.random() - 0.5) * this.shakeAmt)
-    }
-
-    this.background.draw(ctx, view)
-
-    if (this.boss) this.boss.draw(ctx, this)
-    const ents: (Enemy | Threat)[] = [...this.enemies, ...this.threats]
-    ents.sort((a, b) => b.z - a.z)
-    for (const e of ents) e.draw(ctx, this)
-
     if (this.boss && this.boss.ink > 0.01) this.drawInk(ctx, view, this.boss.ink)
-
+    if (this.player.hurtFlash > 0) this.drawHurt(ctx, view)
     if (this.state === 'playing' || this.state === 'paused') {
       this.drawBeam(ctx)
       this.player.drawGun(ctx, view)
     }
     this.particles.draw(ctx)
     if (this.state === 'playing') this.drawReticle(ctx)
-
-    ctx.restore()
-
-    if (this.player.hurtFlash > 0) this.drawHurt(ctx, view)
     this.hud.draw(ctx, view, this.hudData())
   }
 

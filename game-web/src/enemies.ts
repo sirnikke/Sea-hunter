@@ -24,7 +24,7 @@ const CONFIG: Record<EnemyKind, Config> = {
   charger: {
     hp: 3,
     speed: 0.12,
-    radius: 78,
+    radius: 0.22,
     dmg: 12,
     color: '#9fb4c0',
     belly: '#e8f2f6',
@@ -33,7 +33,7 @@ const CONFIG: Record<EnemyKind, Config> = {
   swarm: {
     hp: 1,
     speed: 0.17,
-    radius: 34,
+    radius: 0.1,
     dmg: 5,
     color: '#cf9a4e',
     belly: '#f3d79a',
@@ -42,7 +42,7 @@ const CONFIG: Record<EnemyKind, Config> = {
   shooter: {
     hp: 3,
     speed: 0.1,
-    radius: 56,
+    radius: 0.16,
     dmg: 0,
     color: '#c98f4e',
     belly: '#f0c27a',
@@ -296,7 +296,7 @@ export class Threat {
 
   hitTest(px: number, py: number, game: IGame): boolean {
     const p = game.project(this.x, this.y, this.z)
-    const r = 26 * p.scale
+    const r = 0.14 * p.scale
     const dx = px - p.sx
     const dy = py - p.sy
     return dx * dx + dy * dy <= r * r

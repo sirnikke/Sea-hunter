@@ -2,7 +2,8 @@
 
 A playable **rail-shooter vertical slice** for [Sea Hunter](../README.md): the
 **Caribbean Sea**, escalating enemy waves, and the multi-phase **Young Kraken**
-boss. Web-native TypeScript + HTML5 Canvas, one build for **phone and desktop**.
+boss. Web-native **TypeScript + three.js (WebGL)** for the 3D underwater world,
+with a 2D HUD overlay — one build for **phone and desktop**.
 
 > This is the Phase 1 prototype from [docs/roadmap.md](../docs/roadmap.md) — the
 > goal is to prove the core feel (aim, shoot, read the threat, kill the boss) on
@@ -80,13 +81,15 @@ src/
 
 ## Dev shortcuts
 
-- `?boss` in the URL jumps straight to the Young Kraken (skips the waves) — handy
-  for tuning the boss fight.
+- `?boss` in the URL jumps straight to the Young Kraken (skips the waves).
+- `?demo` spawns one of each creature up close (for art / rendering checks).
 
 ## Notes / next steps
 
-- Rendering is Canvas 2D with faked 2.5D depth — deliberately light for phones
-  (the whole bundle is ~13 KB gzipped, no art assets). A later pass could move to
-  WebGL/Three.js or sprite art without changing the systems.
+- Rendering is real 3D (three.js / WebGL): procedural rocky seabed, depth fog,
+  animated caustics, god rays, drifting particulate, bloom, and procedurally-built
+  creatures + Kraken — no external art assets. The HUD, reticle and hit-sparks are
+  a 2D canvas overlay. Game logic is unchanged from the original 2D version (same
+  systems in game.ts / level.ts / kraken.ts) — only the renderer (world3d.ts) is new.
 - Not yet in this slice: upgrades/ship hub, the other seas, co-op, backend
   leaderboards/dailies. See [docs/roadmap.md](../docs/roadmap.md) for the plan.

@@ -56,8 +56,9 @@ ja tekee siitä modernin, mobiiliystävällisen ja toistettavan.
 ## Status
 
 🎮 **Pelattava prototyyppi valmis** — Phase 1 vertical slice (Caribbean Sea + Young Kraken)
-on toteutettu kansiossa [`game-web/`](game-web/). Web-natiivi TypeScript, sama koodi
-pyörii puhelimella ja tietokoneella selaimessa (~13 KB gzip, ei art-asseteja).
+on toteutettu kansiossa [`game-web/`](game-web/). Web-natiivi TypeScript + **three.js
+(WebGL) 3D-grafiikka**; sama koodi pyörii puhelimella ja tietokoneella selaimessa
+(kaikki proseduraalista, ei art-asseteja).
 
 ```bash
 cd game-web && npm install && npm run dev      # avaa URL koneella tai puhelimella

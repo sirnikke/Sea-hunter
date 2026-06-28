@@ -1,12 +1,10 @@
-import type { IGame, Vec2, View, WeakTarget } from './types'
+import type { IGame, WeakTarget } from './types'
 import { clamp, lerp } from './types'
 
-// The Young Kraken — the Caribbean apex (docs/bestiary.md §2.1).
-// Three phases driven by an explicit state machine:
-//   Phase 1: tentacle slams; shoot the glowing suckers to cancel a slam + damage it
-//   Phase 2: ink darkens the field, swarms spawn, the eye opens in brief windows
-//   Phase 3: the eye stays exposed; enraged, faster slams
-// Weak points are published each frame as screen-space `targets` for the scene to hit-test.
+// The Young Kraken — Caribbean apex (docs/bestiary.md §2.1).
+// State machine is unchanged from the original; geometry is now expressed in the
+// normalised "field" space (x,y,z) so the 3D renderer (world3d.ts) can build the
+// creature, while weak-point targets are still published as screen-space circles.
 
 const REAR_TIME = 1.35
 const SLAM_TIME = 0.3
@@ -14,7 +12,26 @@ const RECOVER_TIME = 0.85
 const STAGGER_TIME = 1.4
 const SLAM_DMG = 12
 
+const HEAD_Y0 = -0.42
+const HEAD_Z = 0.46
+const HEAD_R = 0.5
+
 type TState = 'idle' | 'rear' | 'slam' | 'recover' | 'stagger'
+
+interface FieldPt {
+  x: number
+  y: number
+  z: number
+}
+
+export interface KrakenRenderData {
+  head: { x: number; y: number; z: number; r: number }
+  eye: { x: number; y: number; z: number; r: number; open: boolean }
+  tentacles: { points: FieldPt[]; suckers: (FieldPt & { alive: boolean; glow: boolean })[] }[]
+  phase: number
+  dying: boolean
+  hitFlash: number
+}
 
 class Tentacle {
   side: number
@@ -68,7 +85,7 @@ class Tentacle {
         this.slamP += dt / SLAM_TIME
         if (!this.slammed && this.slamP >= 0.85) {
           this.slammed = true
-          game.damagePlayer(SLAM_DMG) // damagePlayer centralises the shake + hurt sfx
+          game.damagePlayer(SLAM_DMG)
         }
         if (this.slamP >= 1) {
           this.state = 'recover'
@@ -92,15 +109,6 @@ class Tentacle {
   }
 }
 
-interface Geom {
-  ax: number
-  ay: number
-  cpx: number
-  cpy: number
-  bx: number
-  by: number
-}
-
 export class Kraken {
   readonly name = 'YOUNG KRAKEN'
   maxHp = 540
@@ -113,7 +121,7 @@ export class Kraken {
   private transT = 0
   private dyingT = 0
   private bob = 0
-  private rise = 1 // 1 hidden below … 0 fully risen
+  private rise = 1
   private attackCd = 1.2
   private eyeOpen = false
   private eyeTimer = 0
@@ -133,71 +141,93 @@ export class Kraken {
   get transitioning(): boolean {
     return this.mode === 'transition'
   }
-  get dying(): boolean {
-    return this.mode === 'dying'
-  }
   get hpFrac(): number {
     return clamp(this.hp / this.maxHp, 0, 1)
   }
 
-  private head(view: View): { hx: number; hy: number; headR: number } {
-    const headR = Math.min(view.W, view.H) * 0.26
-    const baseY = view.H * 0.2
-    const hx = view.cx + Math.sin(this.bob * 0.8) * view.W * 0.02
-    const hy = baseY + this.rise * view.H * 0.78 + Math.sin(this.bob) * headR * 0.04
-    return { hx, hy, headR }
-  }
-
-  private geom(t: Tentacle, view: View): Geom {
-    const { hx, hy, headR } = this.head(view)
-    const ax = hx + t.side * headR * 0.42
-    const ay = hy + headR * 0.5
-    const sway = Math.sin(t.sway * 1.5)
-    let bx: number
-    let by: number
-    if (t.state === 'rear') {
-      bx = ax + t.side * view.W * 0.11
-      by = ay + view.H * 0.03
-    } else if (t.state === 'slam') {
-      const rx = ax + t.side * view.W * 0.11
-      const ry = ay + view.H * 0.03
-      const zx = view.cx + t.side * view.W * 0.16
-      const zy = view.H * 0.76
-      const e = t.slamP * t.slamP
-      bx = lerp(rx, zx, e)
-      by = lerp(ry, zy, e)
-    } else if (t.state === 'stagger') {
-      bx = ax + t.side * view.W * 0.18
-      by = ay + view.H * 0.24
-    } else {
-      bx = ax + t.side * view.W * 0.05 + sway * view.W * 0.02
-      by = ay + view.H * 0.16 + Math.sin(t.sway) * view.H * 0.02
-    }
-    const mx = (ax + bx) / 2
-    const my = (ay + by) / 2
+  // ── field-space geometry ──
+  private headField(): { x: number; y: number; z: number; r: number } {
     return {
-      ax,
-      ay,
-      cpx: mx + t.side * view.W * 0.07 + Math.cos(t.sway) * view.W * 0.02,
-      cpy: my - view.H * 0.02,
-      bx,
-      by
+      x: Math.sin(this.bob * 0.8) * 0.04,
+      y: HEAD_Y0 + this.rise * 1.7 + Math.sin(this.bob) * 0.02,
+      z: HEAD_Z,
+      r: HEAD_R
     }
   }
 
-  private bez(g: Geom, s: number): Vec2 {
+  private eyeField(): FieldPt {
+    const h = this.headField()
+    return { x: h.x, y: h.y + 0.02, z: h.z - 0.08 }
+  }
+
+  private geom(t: Tentacle): { a: FieldPt; cp: FieldPt; b: FieldPt } {
+    const h = this.headField()
+    const a: FieldPt = { x: h.x + t.side * HEAD_R * 0.5, y: h.y + HEAD_R * 0.45, z: h.z + 0.03 }
+    const sway = Math.sin(t.sway * 1.5)
+    let b: FieldPt
+    if (t.state === 'rear') {
+      b = { x: h.x + t.side * 0.62, y: h.y + 0.34, z: h.z - 0.05 }
+    } else if (t.state === 'slam') {
+      const r = { x: h.x + t.side * 0.62, y: h.y + 0.34, z: h.z - 0.05 }
+      const zone = { x: h.x + t.side * 0.34, y: 0.6, z: 0.14 }
+      const e = t.slamP * t.slamP
+      b = { x: lerp(r.x, zone.x, e), y: lerp(r.y, zone.y, e), z: lerp(r.z, zone.z, e) }
+    } else if (t.state === 'stagger') {
+      b = { x: h.x + t.side * 0.72, y: h.y + 0.95, z: h.z - 0.08 }
+    } else {
+      b = { x: h.x + t.side * 0.5 + sway * 0.08, y: h.y + 0.72, z: h.z - 0.12 }
+    }
+    const cp: FieldPt = {
+      x: (a.x + b.x) / 2 + t.side * 0.18,
+      y: (a.y + b.y) / 2 - 0.04,
+      z: (a.z + b.z) / 2 - 0.05
+    }
+    return { a, cp, b }
+  }
+
+  private bez(g: { a: FieldPt; cp: FieldPt; b: FieldPt }, s: number): FieldPt {
     const u = 1 - s
     return {
-      x: u * u * g.ax + 2 * u * s * g.cpx + s * s * g.bx,
-      y: u * u * g.ay + 2 * u * s * g.cpy + s * s * g.by
+      x: u * u * g.a.x + 2 * u * s * g.cp.x + s * s * g.b.x,
+      y: u * u * g.a.y + 2 * u * s * g.cp.y + s * s * g.b.y,
+      z: u * u * g.a.z + 2 * u * s * g.cp.z + s * s * g.b.z
     }
   }
 
-  private suckerPositions(t: Tentacle, view: View): Vec2[] {
-    const g = this.geom(t, view)
+  private suckerField(t: Tentacle): FieldPt[] {
+    const g = this.geom(t)
     return [0.55, 0.7, 0.85].map((s) => this.bez(g, s))
   }
 
+  renderData(): KrakenRenderData {
+    const head = this.headField()
+    const eyeOpen = this.eyeOpen || this.phase === 3
+    const tentacles = this.tentacles.map((t) => {
+      const g = this.geom(t)
+      const points: FieldPt[] = []
+      for (let i = 0; i <= 8; i++) points.push(this.bez(g, i / 8))
+      const sf = this.suckerField(t)
+      const suckers = sf.map((p, idx) => ({
+        x: p.x,
+        y: p.y,
+        z: p.z,
+        alive: t.suckers[idx],
+        glow: t.state === 'rear' && t.suckers[idx]
+      }))
+      return { points, suckers }
+    })
+    const e = this.eyeField()
+    return {
+      head,
+      eye: { x: e.x, y: e.y, z: e.z, r: HEAD_R * 0.4, open: eyeOpen },
+      tentacles,
+      phase: this.phase,
+      dying: this.mode === 'dying',
+      hitFlash: this.hitFlash
+    }
+  }
+
+  // ── state machine ──
   update(dt: number, game: IGame): void {
     this.bob += dt
     if (this.hitFlash > 0) this.hitFlash = Math.max(0, this.hitFlash - dt * 3)
@@ -267,13 +297,9 @@ export class Kraken {
         this.rise = (1 - clamp(this.dyingT / 3.2, 0, 1)) * 1.2
         this.ink = lerp(this.ink, 0.5, dt)
         if (Math.random() < 0.4) {
-          const { hx, hy, headR } = this.head(game.view)
-          game.particles.burst(
-            hx + (Math.random() - 0.5) * headR,
-            hy + (Math.random() - 0.5) * headR,
-            6,
-            { color: '#9ad7ff', speed: 200, life: 0.6 }
-          )
+          const h = this.headField()
+          const p = game.project(h.x + (Math.random() - 0.5) * 0.4, h.y + (Math.random() - 0.5) * 0.4, h.z)
+          game.particles.burst(p.sx, p.sy, 6, { color: '#9ad7ff', speed: 200, life: 0.6 })
         }
         if (this.dyingT <= 0) this.mode = 'dead'
         break
@@ -319,31 +345,31 @@ export class Kraken {
   private recomputeTargets(game: IGame): void {
     this.targets = []
     if (this.mode !== 'fight') return
-    const view = game.view
-    const { hx, hy, headR } = this.head(view)
     for (let i = 0; i < this.tentacles.length; i++) {
       const t = this.tentacles[i]
       if (t.state !== 'rear') continue
-      const pts = this.suckerPositions(t, view)
-      for (let s = 0; s < pts.length; s++) {
+      const sf = this.suckerField(t)
+      for (let s = 0; s < sf.length; s++) {
         if (!t.suckers[s]) continue
-        this.targets.push({ id: `t${i}s${s}`, sx: pts[s].x, sy: pts[s].y, radius: headR * 0.15 })
+        const p = game.project(sf[s].x, sf[s].y, sf[s].z)
+        this.targets.push({ id: `t${i}s${s}`, sx: p.sx, sy: p.sy, radius: Math.max(20, p.scale * 0.085) })
       }
     }
-    if (this.eyeOpen) {
-      this.targets.push({ id: 'eye', sx: hx, sy: hy + headR * 0.02, radius: headR * 0.2 })
+    if (this.eyeOpen || this.phase === 3) {
+      const e = this.eyeField()
+      const p = game.project(e.x, e.y, e.z)
+      this.targets.push({ id: 'eye', sx: p.sx, sy: p.sy, radius: Math.max(28, p.scale * 0.22) })
     }
   }
 
-  /** Apply a hit to a published target. Returns damage dealt (for scoring). */
   hitTarget(id: string, dmg: number, game: IGame): number {
     if (this.mode !== 'fight') return 0
     this.hitFlash = 1
-    const view = game.view
     if (id === 'eye') {
       this.hp -= dmg
-      const { hx, hy } = this.head(view)
-      game.particles.burst(hx, hy, 16, { color: '#ffe48a', speed: 300, life: 0.45 })
+      const e = this.eyeField()
+      const p = game.project(e.x, e.y, e.z)
+      game.particles.burst(p.sx, p.sy, 16, { color: '#ffe48a', speed: 300, life: 0.45 })
       game.sfx('weak')
       return dmg
     }
@@ -355,161 +381,17 @@ export class Kraken {
     if (!t || !t.suckers[si]) return 0
     t.suckers[si] = false
     this.hp -= dmg
-    const pts = this.suckerPositions(t, view)
-    game.particles.burst(pts[si].x, pts[si].y, 12, { color: '#aef0ff', speed: 260, life: 0.35 })
+    const sf = this.suckerField(t)
+    const p = game.project(sf[si].x, sf[si].y, sf[si].z)
+    game.particles.burst(p.sx, p.sy, 12, { color: '#aef0ff', speed: 260, life: 0.35 })
     game.sfx('weak')
     if (t.allDead()) {
       t.stagger()
       this.hp -= dmg * 0.5
-      const g = this.geom(t, view)
-      game.particles.ring(g.bx, g.by, 'rgba(180,255,255,0.9)', 14)
+      game.particles.ring(p.sx, p.sy, 'rgba(180,255,255,0.9)', 14)
       game.sfx('phase')
       game.shake(8)
     }
     return dmg
-  }
-
-  // ── Rendering ──
-
-  draw(ctx: CanvasRenderingContext2D, game: IGame): void {
-    if (this.mode === 'dead') return
-    const view = game.view
-    for (const t of this.tentacles) this.drawTentacle(ctx, t, view)
-    this.drawHead(ctx, view)
-  }
-
-  private drawTentacle(ctx: CanvasRenderingContext2D, t: Tentacle, view: View): void {
-    const g = this.geom(t, view)
-    const N = 16
-    const headR = Math.min(view.W, view.H) * 0.26
-    const baseW = headR * 0.17
-    const tipW = headR * 0.03
-    const pts: Vec2[] = []
-    for (let i = 0; i < N; i++) pts.push(this.bez(g, i / (N - 1)))
-
-    const left: Vec2[] = []
-    const right: Vec2[] = []
-    for (let i = 0; i < N; i++) {
-      const a = pts[Math.max(0, i - 1)]
-      const b = pts[Math.min(N - 1, i + 1)]
-      let nx = -(b.y - a.y)
-      let ny = b.x - a.x
-      const len = Math.hypot(nx, ny) || 1
-      nx /= len
-      ny /= len
-      const w = lerp(baseW, tipW, i / (N - 1))
-      left.push({ x: pts[i].x + nx * w, y: pts[i].y + ny * w })
-      right.push({ x: pts[i].x - nx * w, y: pts[i].y - ny * w })
-    }
-
-    ctx.beginPath()
-    ctx.moveTo(left[0].x, left[0].y)
-    for (let i = 1; i < N; i++) ctx.lineTo(left[i].x, left[i].y)
-    for (let i = N - 1; i >= 0; i--) ctx.lineTo(right[i].x, right[i].y)
-    ctx.closePath()
-    ctx.fillStyle = t.state === 'stagger' ? '#4a2f5c' : '#5b3a6e'
-    ctx.fill()
-    ctx.strokeStyle = '#2a1736'
-    ctx.lineWidth = 2
-    ctx.stroke()
-
-    // suckers
-    const rearing = t.state === 'rear'
-    const sPts = this.suckerPositions(t, view)
-    for (let s = 0; s < sPts.length; s++) {
-      if (!t.suckers[s]) continue
-      const r = headR * 0.13
-      if (rearing) {
-        ctx.fillStyle = 'rgba(150,240,255,0.25)'
-        ctx.beginPath()
-        ctx.arc(sPts[s].x, sPts[s].y, r * 1.7 + Math.sin(this.bob * 6 + s) * 2, 0, Math.PI * 2)
-        ctx.fill()
-        ctx.fillStyle = '#bff2ff'
-        ctx.strokeStyle = '#1d6f86'
-      } else {
-        ctx.fillStyle = '#7a558e'
-        ctx.strokeStyle = '#2a1736'
-      }
-      ctx.lineWidth = 2
-      ctx.beginPath()
-      ctx.arc(sPts[s].x, sPts[s].y, r, 0, Math.PI * 2)
-      ctx.fill()
-      ctx.stroke()
-    }
-  }
-
-  private drawHead(ctx: CanvasRenderingContext2D, view: View): void {
-    const { hx, hy, headR } = this.head(view)
-    ctx.save()
-    ctx.translate(hx, hy)
-
-    // mantle (pointed bell)
-    ctx.fillStyle = '#5b3a6e'
-    ctx.strokeStyle = '#2a1736'
-    ctx.lineWidth = 3
-    ctx.beginPath()
-    ctx.moveTo(0, -headR * 1.5)
-    ctx.quadraticCurveTo(headR * 0.95, -headR * 0.5, headR * 0.7, headR * 0.45)
-    ctx.quadraticCurveTo(0, headR * 0.8, -headR * 0.7, headR * 0.45)
-    ctx.quadraticCurveTo(-headR * 0.95, -headR * 0.5, 0, -headR * 1.5)
-    ctx.closePath()
-    ctx.fill()
-    ctx.stroke()
-
-    // side fins
-    ctx.fillStyle = '#6f4a82'
-    ctx.beginPath()
-    ctx.moveTo(-headR * 0.6, -headR * 1.05)
-    ctx.lineTo(-headR * 1.15, -headR * 1.3)
-    ctx.lineTo(-headR * 0.5, -headR * 0.7)
-    ctx.closePath()
-    ctx.fill()
-    ctx.beginPath()
-    ctx.moveTo(headR * 0.6, -headR * 1.05)
-    ctx.lineTo(headR * 1.15, -headR * 1.3)
-    ctx.lineTo(headR * 0.5, -headR * 0.7)
-    ctx.closePath()
-    ctx.fill()
-
-    // belly highlight
-    ctx.fillStyle = 'rgba(180,140,205,0.4)'
-    ctx.beginPath()
-    ctx.ellipse(0, -headR * 0.2, headR * 0.45, headR * 0.7, 0, 0, Math.PI * 2)
-    ctx.fill()
-
-    // eye
-    const open = this.eyeOpen || this.phase === 3
-    const er = headR * 0.34
-    if (open) {
-      ctx.fillStyle = 'rgba(255,210,120,0.35)'
-      ctx.beginPath()
-      ctx.arc(0, headR * 0.02, er * 1.6 + Math.sin(this.bob * 5) * 3, 0, Math.PI * 2)
-      ctx.fill()
-      ctx.fillStyle = '#ffe49a'
-      ctx.beginPath()
-      ctx.arc(0, headR * 0.02, er, 0, Math.PI * 2)
-      ctx.fill()
-      ctx.fillStyle = '#7a1d1d'
-      ctx.beginPath()
-      ctx.arc(0, headR * 0.02, er * 0.45, 0, Math.PI * 2)
-      ctx.fill()
-    } else {
-      ctx.strokeStyle = '#2a1736'
-      ctx.lineWidth = 4
-      ctx.beginPath()
-      ctx.arc(0, headR * 0.02, er, Math.PI * 0.1, Math.PI * 0.9)
-      ctx.stroke()
-    }
-
-    if (this.hitFlash > 0) {
-      ctx.globalAlpha = this.hitFlash * 0.6
-      ctx.fillStyle = '#ffffff'
-      ctx.beginPath()
-      ctx.ellipse(0, -headR * 0.3, headR, headR * 1.2, 0, 0, Math.PI * 2)
-      ctx.fill()
-      ctx.globalAlpha = 1
-    }
-
-    ctx.restore()
   }
 }

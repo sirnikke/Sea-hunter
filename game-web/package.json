@@ -10,7 +10,11 @@
     "preview": "vite preview --host"
   },
   "devDependencies": {
+    "@types/three": "^0.185.0",
     "typescript": "^5.5.4",
     "vite": "^5.4.8"
+  },
+  "dependencies": {
+    "three": "^0.185.0"
   }
 }
