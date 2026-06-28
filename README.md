@@ -44,6 +44,7 @@ ja tekee siitä modernin, mobiiliystävällisen ja toistettavan.
 | [docs/bestiary.md](docs/bestiary.md) | **Bestiarium** — 12 apex-hirviötä, piilohirviöt ja tavallisten vihollisten katalogi |
 | [docs/technical-design.md](docs/technical-design.md) | **Tekninen suunnitelma** — moottorivalinta, cross-platform-arkkitehtuuri, rail-järjestelmä, backend, suorituskyky |
 | [docs/roadmap.md](docs/roadmap.md) | **Tuotantosuunnitelma** — vaiheet prototyypistä 1.0:aan, sisältömäärät, riskit, arviot |
+| [game-web/](game-web/) | **🎮 Pelattava prototyyppi** — Phase 1 vertical slice (Caribbean Sea + Young Kraken), web-natiivi TypeScript |
 
 ## Pelisilmukka pähkinänkuoressa
 
@@ -54,6 +55,15 @@ ja tekee siitä modernin, mobiiliystävällisen ja toistettavan.
 
 ## Status
 
-📋 **Suunnitteluvaihe** — tämä repo sisältää tällä hetkellä täyden pelisuunnitelman.
-Seuraava askel on pystyttää pelattava **vertical slice -prototyyppi** (1 meri + 1 pomo).
-Ks. [roadmap](docs/roadmap.md).
+🎮 **Pelattava prototyyppi valmis** — Phase 1 vertical slice (Caribbean Sea + Young Kraken)
+on toteutettu kansiossa [`game-web/`](game-web/). Web-natiivi TypeScript, sama koodi
+pyörii puhelimella ja tietokoneella selaimessa (~13 KB gzip, ei art-asseteja).
+
+```bash
+cd game-web && npm install && npm run dev      # avaa URL koneella tai puhelimella
+```
+
+Toteutettu: on-rails-liike, tähtää/ammu/lataa/charge, combo & pisteet, parry-uhat,
+3 vihollistyyppiä, Hunter's Focus -hidastus, monivaiheinen Kraken-pomo, responsiivinen
+kosketus-/hiiri-UI. Seuraavat askeleet: [roadmap](docs/roadmap.md) (varustelu/alus-tukikohta,
+lisää merta, co-op, backend-tulostaulut).
