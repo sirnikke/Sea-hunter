@@ -8,6 +8,7 @@
 **Genre:** On-rails harppuuna-/valokiväärishooter + kevyt progressio (roguelite-vivahteita)
 **Alustat:** Web (PWA), Android, iOS, Windows/Mac/Linux — yksi koodipohja
 **Pelaajat:** 1 pelaaja + 2 pelaajan co-op (paikallinen ja online)
+**Pelin kieli:** **englanti** — kaikki pelin sisäinen sisältö (UI, tekstit, hahmo- ja hirviönimet, tarina, ääninäyttely). Suunnitteludokumentit ovat suomeksi tiimin käyttöön.
 **Inspiraatio:** The Ocean Hunter (Sega AM1, 1998)
 
 ---

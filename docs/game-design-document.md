@@ -2,6 +2,10 @@
 
 > Versio 0.1 · Suunnitteluvaihe
 > Henkinen seuraaja Segan *The Ocean Hunter* (1998) -pelille — laajempi, modernimpi, cross-platform.
+>
+> **Pelin kieli: englanti.** Kaikki pelin sisäinen teksti — UI, hahmo- ja hirviönimet,
+> tarina ja ääninäyttely — on englanniksi. Nämä suunnitteludokumentit ovat suomeksi
+> tiimin käyttöön, ja hirviöiden/merien englanninkieliset *pelinimet* on merkitty erikseen.
 
 ## Sisällys
 
@@ -219,20 +223,22 @@ ole täysin lineaarinen.
 
 > Hirviöiden ja vihollisten täydet kuvaukset: ks. [bestiary.md](bestiary.md).
 
-| # | Meri | Biomi / tunnelma | Apex-hirviö (lyhyesti) |
+> Sarakkeissa **pelinimet (EN)**, joita käytetään itse pelissä. Biomikuvaukset suomeksi tiimille.
+
+| # | Meri — pelinimi (EN) | Biomi / tunnelma | Apex-hirviö — pelinimi (EN) |
 |---|---|---|---|
-| 1 | **Karibianmeri** | trooppinen riutta, merirosvohylyt, aurinko | *Nuori Kraken* (opettava pomo) |
-| 2 | **Välimeri** | upponneet temppelit, antiikki | *Skylla & Kharybdis* (parivaltio) |
-| 3 | **Pohjanmeri** | kylmä, öljylautan hylky, sumu | *Maelström-käärme* |
-| 4 | **Punainenmeri** | korallit, kapeat solat | *Jättiläismurena (Leviatanin sikiö)* |
-| 5 | **Sargassomeri** | levän tukahduttama haamulaivasto | *Pohjaton ahven (anglerfish-jättiläinen)* |
-| 6 | **Mustameri** | hapeton syvyys, antiikin hirviöt | *Hydra* (monipäinen) |
-| 7 | **Intian valtameri** | monsuuni, temppelirauniot | *Makara* (myyttinen merieläin) |
-| 8 | **Japaninmeri** | myrsky, kummituslaivat | *Umibōzu / Isonade* (haamu + jättihai) |
-| 9 | **Antarktinen Weddellinmeri** | jään alla, sininen pimeys | *Jäätynyt Liopleurodon* |
-| 10 | **Tyynenmeren syvänne (Mariana)** | bioluminesoiva kuilu | *Bloop* (kuilun kolossi) |
-| 11 | **Pohjoinen Jäämeri** | jäälautat, revontulet | *Iku-Turso / Tursas* (suomalainen myytti 🇫🇮) |
-| 12 | **Kadonnut meri (Atlantis)** | uponnut sivilisaatio, finaali | *Jörmungandr* — maailmankäärme (loppupomo) |
+| 1 | **Caribbean Sea** | trooppinen riutta, merirosvohylyt, aurinko | *Young Kraken* (opettava pomo) |
+| 2 | **Mediterranean Sea** | upponneet temppelit, antiikki | *Scylla & Charybdis* (parivaltio) |
+| 3 | **North Sea** | kylmä, öljylautan hylky, sumu | *Maelstrom Serpent* |
+| 4 | **Red Sea** | korallit, kapeat solat | *Giant Moray* (Leviathan spawn) |
+| 5 | **Sargasso Sea** | levän tukahduttama haamulaivasto | *The Abyssal Angler* |
+| 6 | **Black Sea** | hapeton syvyys, antiikin hirviöt | *Hydra* (monipäinen) |
+| 7 | **Indian Ocean** | monsuuni, temppelirauniot | *Makara* |
+| 8 | **Sea of Japan** | myrsky, kummituslaivat | *Umibōzu / Isonade* (haamu + jättihai) |
+| 9 | **Weddell Sea** (Antarctic) | jään alla, sininen pimeys | *Frozen Liopleurodon* |
+| 10 | **Mariana Trench** | bioluminesoiva kuilu | *The Bloop* |
+| 11 | **Arctic Ocean** | jäälautat, revontulet | *Iku-Turso* (suomalainen myytti 🇫🇮) |
+| 12 | **The Lost Sea** (Atlantis) | uponnut sivilisaatio, finaali | *Jörmungandr* — maailmankäärme (loppupomo) |
 
 **Lisäsisältö:** Jokaisella merellä on vähintään yksi **piilohirviö** (salainen
 apex), joka ilmestyy vain tietyllä reitillä, säällä tai ehdolla → +8 hirviötä.

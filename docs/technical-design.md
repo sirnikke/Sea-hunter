@@ -253,8 +253,9 @@ web mukaan lukien. Rail shooter auttaa: näytämme vain reitin edessä olevan.
   (Ogg/Opus). Ks. GDD §15.
 - **Data:** meret/pomot/viholliset/aseet JSON-/resurssitiedostoina (ks. §7) →
   versioitavissa ja moddattavissa.
-- **Lokalisointi:** tekstit avain-pohjaisina alusta asti (FI/EN ensin).
-  Suunnittele UI venyville merkkijonoille.
+- **Lokalisointi:** pelin julkaisukieli on **englanti**; kaikki tekstit
+  avain-pohjaisina (string-avaimet) alusta asti, jotta muut kielet (esim. suomi)
+  voi lisätä myöhemmin ilman koodimuutoksia. Suunnittele UI venyville merkkijonoille.
 
 ## 12. Build- ja julkaisuputki
 

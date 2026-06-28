@@ -37,7 +37,7 @@ sekä kosketuksella että hiirellä.
 - [ ] **CombatSystem:** tähtäys, osumatunnistus, harppuunatuli, lipas + lataus,
       latausosuma, combo, torjunta.
 - [ ] **2–3 vihollisarkkityyppiä** (Syöksyjä, Parvi, Ampuja) datasta.
-- [ ] **1 apex-pomo** (Nuori Kraken) monivaiheisena BossDirectorilla.
+- [ ] **1 apex-pomo** (Young Kraken) monivaiheisena BossDirectorilla.
 - [ ] **Tulosruutu** (combo, tarkkuus, ranking).
 - [ ] **HUD** responsiivisena (puhelin pysty/vaaka + työpöytä).
 - [ ] **Audio-paikkamerkit** + haptiikka.
@@ -70,13 +70,13 @@ hauskaa? Onko pomo reilu ja jännittävä? Iteroi kunnes "vielä yksi yritys" -t
 
 **Tavoite:** käytä vaiheiden 1–2 työkaluja ja data-vetoisuutta merten sarjatuotantoon.
 
-- [ ] **Meret 2–6** (Välimeri → Mustameri): kullekin biomi, vihollispaletti,
+- [ ] **Meret 2–6** (Mediterranean Sea → Black Sea): kullekin biomi, vihollispaletti,
       apex-pomo, set-piece, haara + 1 piilohirviö.
 - [ ] **Aseluokat** loppuun (räjähdys, verkko, sähkö, sonipiikki, syvyyspommit).
 - [ ] **Tehtävätyypit** (pelastus, saattue, aarremetsä, väijytys).
 - [ ] **Boss Rush** ja **Endless** -moodit (käyttävät olemassa olevaa sisältöä).
 - [ ] **Tarinakehys:** miehistö, esittelyt, löydökset (kevyt toteutus).
-- [ ] **Lokalisointi** FI/EN kuntoon.
+- [ ] **Lokalisointi-runko** kuntoon — peli **englanniksi**; avain-pohjaiset tekstit, jotta muita kieliä voi lisätä myöhemmin.
 
 **Tulos:** **Early Access -kelpoinen** peli (6 merta, useita moodeja). Mahdollinen
 julkinen web-demo + EA-julkaisu palautteen ja rahoituksen keräämiseksi.
@@ -162,7 +162,7 @@ hirviötaide on pullonkaula — varaa siihen aikaa tai kumppani.
 
 1. Vahvista **moottori + ulottuvuus** (suositus: Godot 4 + 2.5D).
 2. Pystytä projektirunko ja CI, jotta web-demo deployaa jokaisesta muutoksesta.
-3. Rakenna **vaiheen 1 pystyviipale** (Karibianmeri + Nuori Kraken).
+3. Rakenna **vaiheen 1 pystyviipale** (Caribbean Sea + Young Kraken).
 4. Laita se ihmisten käsiin puhelimella ja koneella → iteroi tuntumaa.
 
 > Voin seuraavaksi pystyttää tämän pystyviipaleen prototyypin (esim. pelattava
