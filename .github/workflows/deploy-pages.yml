@@ -3,7 +3,6 @@ name: Deploy game to GitHub Pages
 on:
   push:
     branches:
-      - claude/ocean-hunter-game-design-ph875t
       - main
   workflow_dispatch:
 
